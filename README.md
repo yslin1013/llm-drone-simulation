@@ -11,7 +11,6 @@ The application converts a user request into a structured tool call, validates i
 Under **Assets**, click **LLM_Drone_Demo_1080p.mp4** (3.06 MB). No GitHub sign-in is required.
 
 - [Direct MP4 download](https://github.com/yslin1013/llm-drone-simulation/releases/download/demo-v1/LLM_Drone_Demo_1080p.mp4)
-- [Alternative MP4 download](https://raw.githubusercontent.com/yslin1013/llm-drone-simulation/main/LLM_Drone_Demo_1080p.mp4)
 - [Recorded execution log](logs/20261103-210836/events.jsonl)
 
 If a direct download does not start in an embedded browser, open the download page in your regular browser and select the MP4 under Assets.
@@ -303,7 +302,6 @@ scripts/record_ui.py          Simulator and interface capture
 scripts/compose_video.sh      Video composition
 config/gui.config            Reference Gazebo GUI configuration
 logs/                        Recorded example runs
-LLM_Drone_Demo_1080p.mp4       Demonstration video
 ```
 
 ## References
