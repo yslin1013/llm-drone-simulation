@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LLM × 無人機 3D 模擬</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07111f;--panel:#101d2e;--line:#29415d;--cyan:#4dd9ff;--green:#51e6a4;--amber:#ffca62;--red:#ff6b7a;--text:#edf6ff;--muted:#9cb0c7}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 10% 10%,#163354 0,#07111f 42%);color:var(--text);font:16px/1.5 "Segoe UI","Microsoft JhengHei",sans-serif;min-height:100vh}
+    header{height:84px;padding:20px 32px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:#07111fd9}
+    h1{font-size:26px;margin:0;letter-spacing:.04em} h1 span{color:var(--cyan)} .tag{color:var(--muted);font-size:14px}
+    main{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;padding:20px 28px;height:calc(100vh - 84px)}
+    .panel{background:#101d2ee8;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 18px 45px #0005;min-height:0}
+    h2{font-size:15px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 12px}
+    textarea{width:100%;height:112px;resize:none;border:1px solid #3b5878;border-radius:12px;background:#071321;color:white;padding:14px;font:18px/1.55 inherit;outline:none}
+    textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #4dd9ff20}
+    button{margin-top:12px;border:0;border-radius:10px;padding:12px 22px;background:linear-gradient(135deg,#1ec8ff,#4f7cff);color:white;font-size:16px;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.5;cursor:wait}.status{display:flex;align-items:center;gap:10px;margin:18px 0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#091625}
+    .dot{width:12px;height:12px;border-radius:50%;background:var(--amber);box-shadow:0 0 14px currentColor}.complete .dot{background:var(--green)}.error .dot{background:var(--red)}
+    pre{margin:0;background:#06101c;border:1px solid #233a54;border-radius:12px;padding:14px;overflow:auto;color:#bfeaff;font:14px/1.5 Consolas,monospace;white-space:pre-wrap}
+    #tool{height:190px}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0}.step{padding:10px 6px;text-align:center;border:1px solid var(--line);border-radius:9px;color:#6f86a0;font-size:13px}.step.on{border-color:var(--cyan);color:white;background:#12314a}.step.done{border-color:#34866a;color:var(--green)}
+    .telemetry{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.metric{background:#091625;border:1px solid var(--line);border-radius:11px;padding:12px}.metric b{display:block;font-size:25px;color:var(--green)}.metric span{font-size:12px;color:var(--muted)}
+    #log{height:calc(100vh - 392px);min-height:260px;color:#c8d6e5}.backend{margin:8px 0 14px;color:var(--muted);font-size:13px}
+    @media(max-width:1100px){header{height:110px;padding:16px}h1{font-size:19px}.tag{display:none}main{display:block;height:auto;padding:12px}.panel{margin-bottom:12px;padding:15px}#tool{height:210px}.telemetry{grid-template-columns:repeat(4,1fr)}#log{height:165px;min-height:0}.metric{padding:8px}.metric b{font-size:21px}.steps{margin:10px 0}textarea{height:90px;font-size:17px}h2{margin-bottom:7px}}
+  </style>
+</head>
+<body>
+<header><h1><span>LLM</span> → Function Calling → MAVSDK → Gazebo</h1><div class="tag">Natural-language flight control | PX4 SITL</div></header>
+<main>
+  <section class="panel">
+    <h2>自然語言任務</h2>
+    <textarea id="command">{{ default_command }}</textarea>
+    <button id="run">產生工具呼叫並執行</button>
+    <div id="status" class="status"><i class="dot"></i><span>等待指令</span></div>
+    <div class="steps"><div class="step" data-p="llm">1 理解</div><div class="step" data-p="validation">2 驗證</div><div class="step" data-p="takeoff">3 起飛</div><div class="step" data-p="forward">4 飛行／旋轉</div><div class="step" data-p="landing">5 降落</div></div>
+    <h2>LLM 工具呼叫</h2><div id="backend" class="backend">尚未呼叫</div><pre id="tool">等待 LLM 輸出…</pre>
+  </section>
+  <section class="panel">
+    <h2>即時飛行狀態（NED 座標）</h2>
+    <div class="telemetry"><div class="metric"><b id="height">—</b><span>高度 m（Up）</span></div><div class="metric"><b id="heading">—</b><span>機頭角度°（順時針）</span></div><div class="metric"><b id="north">—</b><span>北向位移 m</span></div><div class="metric"><b id="east">—</b><span>東向位移 m</span></div></div>
+    <h2 style="margin-top:18px">執行紀錄</h2><pre id="log">系統就緒</pre>
+  </section>
+</main>
+<script>
+const phases=['idle','llm','validation','validated','connecting','preflight','takeoff','forward','rotate','landing','complete'];
+const run=document.querySelector('#run'), statusBox=document.querySelector('#status');
+run.onclick=async()=>{run.disabled=true;await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:document.querySelector('#command').value})});};
+function set(id,v){document.querySelector(id).textContent=v??'—'}
+async function poll(){try{const s=await (await fetch('/api/status')).json();statusBox.className='status '+s.phase;statusBox.querySelector('span').textContent=s.message;run.disabled=s.running;
+set('#backend',s.backend||'尚未呼叫');set('#tool',s.tool_call?JSON.stringify({name:'execute_flight_plan',arguments:s.tool_call},null,2):'等待 LLM 輸出…');set('#log',(s.log||[]).join('\n'));
+if(s.telemetry){set('#height',s.telemetry.height_m.toFixed(2));set('#heading',s.telemetry.heading_deg.toFixed(1));set('#north',s.telemetry.north_m.toFixed(2));set('#east',s.telemetry.east_m.toFixed(2));}
+document.querySelectorAll('.step').forEach(x=>x.className='step');let n=phases.indexOf(s.phase);document.querySelectorAll('.step').forEach((x,i)=>{let keys=[1,2,6,7,9];if(n>keys[i])x.classList.add('done');else if(n>=keys[i])x.classList.add('on')});}catch(e){}setTimeout(poll,500)}poll();
+</script>
+</body></html>
