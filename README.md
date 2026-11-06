@@ -4,9 +4,19 @@ Natural-language flight planning with a local LLM, PX4 flight control, and Gazeb
 
 The application converts a user request into a structured tool call, validates its parameters, and executes a bounded flight sequence through MAVSDK. A web interface displays the request, tool arguments, execution status, and telemetry. Structured logs capture each transformation from language to flight commands.
 
-**[Download the demo video](https://github.com/yslin1013/llm-drone-simulation/releases/download/demo-v1/LLM_Drone_Demo_1080p.mp4)** · **[Inspect a recorded run](logs/20261103-210836/events.jsonl)**
+## Download the demo
 
-The recording shows an actual simulated takeoff, forward movement, rotation, and landing. It is a 65-second, 1920 × 1080 H.264 video. Download the MP4 if inline playback is unavailable. The recorded interface and input are in Traditional Chinese.
+**[Open the video download page](https://github.com/yslin1013/llm-drone-simulation/releases/tag/demo-v1)**
+
+Under **Assets**, click **LLM_Drone_Demo_1080p.mp4** (3.06 MB). No GitHub sign-in is required.
+
+- [Direct MP4 download](https://github.com/yslin1013/llm-drone-simulation/releases/download/demo-v1/LLM_Drone_Demo_1080p.mp4)
+- [Alternative MP4 download](https://raw.githubusercontent.com/yslin1013/llm-drone-simulation/main/LLM_Drone_Demo_1080p.mp4)
+- [Recorded execution log](logs/20261103-210836/events.jsonl)
+
+If a direct download does not start in an embedded browser, open the download page in your regular browser and select the MP4 under Assets.
+
+The recording shows an actual simulated takeoff, forward movement, rotation, and landing. It is a 65-second, 1920 × 1080 H.264 video. Save the MP4 and open it in a video player. The recorded interface and input are in Traditional Chinese.
 
 ## Architecture
 
